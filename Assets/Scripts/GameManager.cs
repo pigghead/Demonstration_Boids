@@ -19,7 +19,7 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Boids = new GameObject[2];
+        Boids = new GameObject[12];
         Obstacles = new List<GameObject>();
 
         GM_wanderWeight = 0.75f;

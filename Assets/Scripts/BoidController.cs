@@ -20,10 +20,13 @@ public class BoidController : MonoBehaviour
     public float cohesionWeight;
 
     [Range(1, 3)]
-    public float avoidWeight;
+    public float obstacleAvoidanceWeight;
 
-    public float fleeWeight = 0.25f;
-    public float chaseWeight = 0.25f;
+    [Range(1, 3)]
+    public float boidAvoidanceWeight;
+
+    /* public float fleeWeight = 0.25f;
+    public float chaseWeight = 0.25f; */
     // END **WEIGHTS**
 
     [Range(4, 12)]
@@ -37,6 +40,7 @@ public class BoidController : MonoBehaviour
     //public GameObject targetIndicator;  // represent the target we are aiming at
 
     private float wanderRotation = 0f;  // current rotation of wander target
+
     protected Vector3 Velocity;
     private Vector3 Acceleration;
 
@@ -54,7 +58,7 @@ public class BoidController : MonoBehaviour
         // Setting weights
         wanderWeight = GM.GM_wanderWeight;
         cohesionWeight = GM.GM_cohesionWeight;
-        avoidWeight = 1.5f;
+        boidAvoidanceWeight = 1.5f;
 
         // Start off with a random rotation
         wanderRotation = Random.Range(0f, Mathf.PI * 2f);
@@ -87,17 +91,7 @@ public class BoidController : MonoBehaviour
 
         ApplyForce(Wander() * wanderWeight);
         ApplyForce(Cohesion() * cohesionWeight);
-        ApplyForce(Avoidance());
-        //ApplyForce(new Vector3(0, 0, 0) * 1.25f);
-
-        //ApplyForce(Wander() * wanderRate);
-        //ApplyForce(Cohesion());
-    }
-
-    protected void ApplyForce(Vector3 force)
-    {
-        force.y = 0;
-        Acceleration += force / mass;
+        ApplyForce(BoidAvoidance());
     }
 
     /// <summary>
@@ -194,7 +188,7 @@ public class BoidController : MonoBehaviour
     /// <summary>
     /// How well will the Boids flock with one another
     /// </summary>
-    /// <returns>A Vector3 that will correct a Boid's path</returns>
+    /// <returns>A Vector3 that will "correct" a Boid's path</returns>
     public Vector3 Cohesion()
     {
         Vector3 avgPosition = Vector3.zero;  // Perceived center of the flock
@@ -220,7 +214,7 @@ public class BoidController : MonoBehaviour
     /// How well 
     /// </summary>
     /// <param name="b">Boid performing the calculation</param>
-    public Vector3 Avoidance()
+    public Vector3 BoidAvoidance()
     {
         Vector3 displacement = Vector3.zero;
 
@@ -230,13 +224,19 @@ public class BoidController : MonoBehaviour
             if (boid != this)
             {
                 // Number after '<' represents the distance between any given boid and this one
-                if (Mathf.Abs(boid.transform.position.sqrMagnitude - this.transform.position.sqrMagnitude) < 0.7)
+                if (Mathf.Abs(boid.transform.position.sqrMagnitude - this.transform.position.sqrMagnitude) < 10)
                 {
                     displacement -= (boid.transform.position - this.transform.position);
                 }
             }
-           // Debug.DrawLine(this.transform.position, boid.transform.position, Color.cyan);
         }
+
+        return displacement;
+    }
+
+    public Vector3 ObstacleAvoidance()
+    {
+        Vector3 displacement = Vector3.zero;
 
         foreach (var obstacle in GM.Obstacles)
         {
@@ -248,6 +248,23 @@ public class BoidController : MonoBehaviour
             // Debug.DrawLine(this.transform.position, obstacle.transform.position, Color.red);
         }
         return displacement;
+    }
+
+    public Vector3 MatchAverageVelocity()
+    {
+        Vector3 perceivedVelocity = Vector3.zero;
+
+        foreach (var boid in GM.Boids)
+        {
+            if (boid != this)
+            {
+                perceivedVelocity += boid.GetComponent<BoidController>().Velocity;  // this is terrible lol
+            }
+        }
+
+        perceivedVelocity = perceivedVelocity / GM.Boids.Length;
+
+        return (perceivedVelocity - this.Velocity) / 8;
     }
 
     void LateUpdate()
@@ -269,46 +286,61 @@ public class BoidController : MonoBehaviour
 
         //Debug.DrawLine(this.transform.position, this.targetIndicator.transform.position, Color.red);
         //Debug.DrawLine(this.transform.position, this.transform.up.normalized, Color.green);
-        Debug.DrawLine(this.transform.position, FuturePosition(2.5f), Color.red);
-        Debug.Log(FuturePosition(2.5f));
+        //Debug.DrawLine(this.transform.position, FuturePosition(2.5f), Color.red);
+        //Debug.Log(FuturePosition(2.5f));
     }
 
     // ********************
     // * HELPER FUNCTIONS *
     // ********************
-    // Used to calculate all necessary vectors (forward, right, up)
-    private void VectorCalculator()
-    {
-        forwardVector = this.transform.position - transform.forward;
-        rightVector = Vector3.Cross(forwardVector, transform.up);
-    }
-
     private Vector3 ConstructUnitVector(float wR)
     {
         return new Vector3(Mathf.Cos(wR), 0, Mathf.Sin(wR));
     }
 
+    /// <summary>
+    /// Calculate the distance between two Boids
+    /// </summary>
+    /// <param name="b1">First Boid</param>
+    /// <param name="b2">Second Boid</param>
+    /// <returns>Magnitude of the vector that is between the two boids</returns>
     private float Distance(BoidController b1, BoidController b2)
     {
         Vector3 b1Transform = b1.transform.position;
         Vector3 b2Transform = b2.transform.position;
 
         return Mathf.Sqrt(
-            (b1Transform.x - b2Transform.x) *
-            (b1Transform.y - b2Transform.y) *
-            (b1Transform.z - b2Transform.z)
+                (b1Transform.x - b2Transform.x) *
+                (b1Transform.y - b2Transform.y) *
+                (b1Transform.z - b2Transform.z)
             );
-        // Calculate the distance between boids
-        //return 0f;
     }
 
+    /// <summary>
+    /// Clamp a vector's magnitude by the specified 
+    /// </summary>
+    /// <param name="v">The vector we're clamping</param>
+    /// <param name="magnitudeLimit">The limit imposed</param>
+    /// <returns>Same vector with the clamped magnitude</returns>
     private Vector3 Clamp(Vector3 v, float magnitudeLimit)
     {
-        float mag = v.magnitude;
+        float mag = v.magnitude;  // Magnitude of the vector
+
+        // If it is above the magnitude limit
         if (mag > magnitudeLimit)
         {
             v *= magnitudeLimit / v.magnitude;
         }
         return v;
+    }
+
+    /// <summary>
+    /// Used for causing the character controller to move
+    /// </summary>
+    /// <param name="force">What force is being applied</param>
+    protected void ApplyForce(Vector3 force)
+    {
+        force.y = 0;
+        Acceleration += force / mass;
     }
 }
