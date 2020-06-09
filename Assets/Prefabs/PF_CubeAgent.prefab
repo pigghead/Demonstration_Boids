@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 8763541619404680253}
   - component: {fileID: 8763541619404680243}
   m_Layer: 0
-  m_Name: CubeAgent
+  m_Name: PF_CubeAgent
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -105,14 +105,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4cf13052bc2e2a4080fed4dfcb0a97c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  target: {fileID: 0}
   charController: {fileID: 0}
+  cohesionTarget: {fileID: 0}
   mass: 10
   wanderRadius: 1
   wanderRate: 0.25
   wanderWeight: 0.125
-  fleeWeight: 0.25
-  chaseWeight: 0.25
+  cohesionWeight: 0
+  obstacleAvoidanceWeight: 0
+  boidAvoidanceWeight: 0
   maxSpeed: 1
   maxTurnSpeed: 0.25
   radius: 0.5

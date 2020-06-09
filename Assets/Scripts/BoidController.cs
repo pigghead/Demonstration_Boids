@@ -8,6 +8,8 @@ public class BoidController : MonoBehaviour
     public CharacterController charController;  // our agent's character controller
     private GameManager GM;  // game manager
 
+    public GameObject cohesionTarget;  // for debugging only; delete later
+
     public float mass = 10.0f;
     public float wanderRadius = 1.0f;
     public float wanderRate = 0.25f;
@@ -32,6 +34,9 @@ public class BoidController : MonoBehaviour
     [Range(4, 12)]
     public float maxSpeed = 4.0f;
 
+    [Range(1, 4)]
+    public float futureIndicator;
+
     public float maxTurnSpeed = 0.25f;
     public float radius = 0.5f;
 
@@ -54,11 +59,14 @@ public class BoidController : MonoBehaviour
     protected void Start()
     {
         GM = GameObject.Find("GameManager").GetComponent<GameManager>();
+        cohesionTarget = GameObject.Find("Target");
 
         // Setting weights
         wanderWeight = GM.GM_wanderWeight;
         cohesionWeight = GM.GM_cohesionWeight;
         boidAvoidanceWeight = 1.5f;
+
+        futureIndicator = 2;
 
         // Start off with a random rotation
         wanderRotation = Random.Range(0f, Mathf.PI * 2f);
@@ -80,6 +88,11 @@ public class BoidController : MonoBehaviour
 
     //protected abstract void CalcSteering();
 
+    /// <summary>
+    /// Where all forces are being implemented.
+    /// This is the beauty behind the algorithm, as the weights can be adjusted to influence objects to be avoided more agressively
+    /// or more relaxed.
+    /// </summary>
     public void TestCalcSteering()
     {
         Vector3 futurePos = FuturePosition(2.5f);
@@ -91,7 +104,8 @@ public class BoidController : MonoBehaviour
 
         ApplyForce(Wander() * wanderWeight);
         ApplyForce(Cohesion() * cohesionWeight);
-        ApplyForce(BoidAvoidance());
+        ApplyForce(BoidAvoidance() * boidAvoidanceWeight);
+        ApplyForce(ObstacleAvoidance() * boidAvoidanceWeight);
     }
 
     /// <summary>
@@ -206,6 +220,8 @@ public class BoidController : MonoBehaviour
         avgPosition = avgPosition / (GM.Boids.Length - 1);
         // others.Length - 1 to not account for this boid
 
+        cohesionTarget.transform.position = avgPosition;
+
         // 1% towards the center
         return (avgPosition - this.transform.position) / 100;
     }
@@ -224,10 +240,11 @@ public class BoidController : MonoBehaviour
             if (boid != this)
             {
                 // Number after '<' represents the distance between any given boid and this one
-                if (Mathf.Abs(boid.transform.position.sqrMagnitude - this.transform.position.sqrMagnitude) < 10)
+                if (Mathf.Abs(boid.transform.position.sqrMagnitude - this.transform.position.sqrMagnitude) < 0.7f)
                 {
                     displacement -= (boid.transform.position - this.transform.position);
                 }
+                // Debug.DrawLine(this.transform.position, boid.transform.position, Color.green);
             }
         }
 
@@ -241,12 +258,13 @@ public class BoidController : MonoBehaviour
         foreach (var obstacle in GM.Obstacles)
         {
             // Number after '<' represents the distance between any given boid and an obstacle
-            if (Mathf.Abs(obstacle.transform.position.sqrMagnitude - this.transform.position.sqrMagnitude) < 0.2)
+            if (Mathf.Abs(obstacle.transform.position.sqrMagnitude - this.transform.position.sqrMagnitude) < 0.2f)
             {
                 displacement -= (obstacle.transform.position - this.transform.position);
             }
-            // Debug.DrawLine(this.transform.position, obstacle.transform.position, Color.red);
+            Debug.DrawLine(this.transform.position, obstacle.transform.position, Color.green);
         }
+
         return displacement;
     }
 
@@ -269,12 +287,9 @@ public class BoidController : MonoBehaviour
 
     void LateUpdate()
     {
-        //CalcSteering();
-
         TestCalcSteering();
 
         Velocity += Acceleration;
-        //Velocity = Vector3.ClampMagnitude(Velocity, maxSpeed);
         Velocity = Clamp(Velocity, maxSpeed);
         this.charController.Move(Velocity * Time.deltaTime);
 
@@ -283,11 +298,8 @@ public class BoidController : MonoBehaviour
         Acceleration = Vector3.zero;
 
         this.transform.rotation = Quaternion.identity;
-
-        //Debug.DrawLine(this.transform.position, this.targetIndicator.transform.position, Color.red);
-        //Debug.DrawLine(this.transform.position, this.transform.up.normalized, Color.green);
-        //Debug.DrawLine(this.transform.position, FuturePosition(2.5f), Color.red);
-        //Debug.Log(FuturePosition(2.5f));
+        
+        Debug.DrawLine(this.transform.position, FuturePosition(futureIndicator), Color.red);
     }
 
     // ********************
