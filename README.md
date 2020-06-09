@@ -17,7 +17,11 @@ Boids will attempt not to collide with one another, as well as with obstacles an
 
 In the image below, bright green rays are drawn from each Boid to every other Boid. There are also red rays drawn denoting the direction in which an agent is moving.
 
-![AvoidanceImage](https://github.com/pigghead/Demonstration_Boids/blob/master/images/DOC_FuturePos_BoidAvoidance.PNG)
+![BoidAvoidanceImage](https://github.com/pigghead/Demonstration_Boids/blob/master/images/DOC_FuturePos_BoidAvoidance.PNG)
+
+The same is done for Obstacles. A ray is drawn from each Boid to each obstacle present in the map. The number of obstacles genereated is random between four and twelve. Those generated are done so at random positions within the plane.
+
+![ObstacleAvoidanceImage](https://github.com/pigghead/Demonstration_Boids/blob/master/images/DOC_FuturePos_ObstacleAvoidance.PNG)
 
 ## Matching
 Boids will attempt to match the speed of neighboring Boids. This will be accomplished much like the Cohesion / Flocking algorithm, except that the velocities of all Boids will be used as opposed to their positions.
