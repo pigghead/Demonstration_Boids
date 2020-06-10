@@ -25,3 +25,6 @@ The same is done for Obstacles. A ray is drawn from each Boid to each obstacle p
 
 ## Matching
 Boids will attempt to match the speed of neighboring Boids. This will be accomplished much like the Cohesion / Flocking algorithm, except that the velocities of all Boids will be used as opposed to their positions.
+
+## To do
+- Right now, the boids only react to 2D space (travel along the x and z coordinates). Apply ability to navigate the y.
